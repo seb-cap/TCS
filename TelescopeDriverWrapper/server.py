@@ -11,9 +11,15 @@ async def handle_client(client):
     print('Client connected')
     loop = asyncio.get_event_loop()
     request = None
+    buffer = b""
     while request != 'exit':
         try:
             request = (await loop.sock_recv(client, 255))
+            buffer += request
+            if b';' in buffer:
+                request, buffer = buffer.split(b';', 1)
+            else:
+                continue
         except (ConnectionResetError, ConnectionAbortedError) as e:
             print('Client disconnected')
             break
@@ -22,7 +28,7 @@ async def handle_client(client):
             break
         async with lock:
             print(f"Sending request: {request.decode('utf8')}")
-            driver.sendall(request)
+            driver.sendall(request+b';')
             print('Request sent')
             try:
                 response = driver.recv(255).decode('utf8')
